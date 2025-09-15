@@ -18,10 +18,17 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
     private List<String> passedTests = new ArrayList<>();
     private List<String> failedTests = new ArrayList<>();
     private List<String> skippedTests = new ArrayList<>();
+    private final String reportFileName = "Femverse_API_Report.docx";
 
     @Override
     public void onStart(ISuite suite) {
         document = new XWPFDocument();
+
+        // 🗑️ Delete old report if exists
+        java.io.File oldFile = new java.io.File(reportFileName);
+        if (oldFile.exists()) {
+            oldFile.delete();
+        }
 
         // ✅ Fix layout (no two-column side-by-side)
         CTSectPr sectPr = document.getDocument().getBody().addNewSectPr();
@@ -39,7 +46,7 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
         XWPFParagraph cover = document.createParagraph();
         cover.setAlignment(ParagraphAlignment.CENTER);
         XWPFRun run = cover.createRun();
-        run.setText("📑 Docufence API Test Report");
+        run.setText("📑 Femverse API Test Report");
         run.setFontSize(20);
         run.setBold(true);
         run.addBreak();
@@ -113,12 +120,12 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
             }
 
             // Save file
-            try (FileOutputStream out = new FileOutputStream("Docufence_API_Report.docx")) {
+            try (FileOutputStream out = new FileOutputStream(reportFileName)) {
                 document.write(out);
             }
             document.close();
 
-            System.out.println("✅ Word report generated: Docufence_API_Report.docx");
+            System.out.println("✅ Word report generated: " + reportFileName);
 
         } catch (Exception e) {
             e.printStackTrace();
