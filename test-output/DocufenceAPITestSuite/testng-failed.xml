@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "https://testng.org/testng-1.0.dtd">
+<suite name="Failed suite [DocufenceAPITestSuite]">
+  <listeners>
+    <listener class-name="com.product.femverse.femverse.HtmlToDocxReport"/>
+  </listeners>
+  <test thread-count="5" name="SigninTest(failed)">
+    <classes>
+      <class name="com.product.femverse.femverse.SocialLogin">
+        <methods>
+          <include name="signupNewUser"/>
+        </methods>
+      </class> <!-- com.product.femverse.femverse.SocialLogin -->
+    </classes>
+  </test> <!-- SigninTest(failed) -->
+</suite> <!-- Failed suite [DocufenceAPITestSuite] -->
