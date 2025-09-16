@@ -18,7 +18,9 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
     private List<String> passedTests = new ArrayList<>();
     private List<String> failedTests = new ArrayList<>();
     private List<String> skippedTests = new ArrayList<>();
-    private final String reportFileName = "Femverse_API_Report.docx";
+
+    // ✅ Save inside target/ so Jenkins can find it
+    private final String reportFileName = "target/Femverse_API_Report.docx";
 
     @Override
     public void onStart(ISuite suite) {
@@ -30,16 +32,16 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
             oldFile.delete();
         }
 
-        // ✅ Fix layout (no two-column side-by-side)
+        // ✅ Fix layout
         CTSectPr sectPr = document.getDocument().getBody().addNewSectPr();
         CTPageSz pageSize = sectPr.addNewPgSz();
         pageSize.setW(BigInteger.valueOf(11900)); // A4 width
         pageSize.setH(BigInteger.valueOf(16840)); // A4 height
 
         CTPageMar pageMar = sectPr.addNewPgMar();
-        pageMar.setTop(BigInteger.valueOf(720));     // 0.5 inch
+        pageMar.setTop(BigInteger.valueOf(720));
         pageMar.setBottom(BigInteger.valueOf(720));
-        pageMar.setLeft(BigInteger.valueOf(1000));   // ~0.7 inch
+        pageMar.setLeft(BigInteger.valueOf(1000));
         pageMar.setRight(BigInteger.valueOf(1000));
 
         // 📄 Cover Page Header
@@ -51,7 +53,7 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
         run.setBold(true);
         run.addBreak();
 
-        // Metadata (name, designation, company, date)
+        // Metadata
         XWPFParagraph meta = document.createParagraph();
         meta.setAlignment(ParagraphAlignment.CENTER);
         XWPFRun metaRun = meta.createRun();
@@ -92,34 +94,24 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
     @Override
     public void onFinish(ISuite suite) {
         try {
-            // ✅ Section: Passed Tests
             if (!passedTests.isEmpty()) {
                 addSectionHeading("✅ Passed Tests");
-                for (String test : passedTests) {
-                    addBulletPoint(test);
-                }
-                document.createParagraph().setPageBreak(true); // new page
+                for (String test : passedTests) addBulletPoint(test);
+                document.createParagraph().setPageBreak(true);
             }
 
-            // ❌ Section: Failed Tests
             if (!failedTests.isEmpty()) {
                 addSectionHeading("❌ Failed Tests");
-                for (String test : failedTests) {
-                    addBulletPoint(test);
-                }
+                for (String test : failedTests) addBulletPoint(test);
                 document.createParagraph().setPageBreak(true);
             }
 
-            // ⚠️ Section: Skipped Tests
             if (!skippedTests.isEmpty()) {
                 addSectionHeading("⚠️ Skipped Tests");
-                for (String test : skippedTests) {
-                    addBulletPoint(test);
-                }
+                for (String test : skippedTests) addBulletPoint(test);
                 document.createParagraph().setPageBreak(true);
             }
 
-            // Save file
             try (FileOutputStream out = new FileOutputStream(reportFileName)) {
                 document.write(out);
             }
@@ -132,7 +124,6 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
         }
     }
 
-    // 🔹 Helper: Add section heading
     private void addSectionHeading(String text) {
         XWPFParagraph para = document.createParagraph();
         para.setAlignment(ParagraphAlignment.LEFT);
@@ -143,11 +134,10 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
         run.addBreak();
     }
 
-    // 🔹 Helper: Add bullet point
     private void addBulletPoint(String text) {
         XWPFParagraph para = document.createParagraph();
         para.setAlignment(ParagraphAlignment.LEFT);
-        para.setStyle("ListBullet"); // Word will auto-bullet
+        para.setStyle("ListBullet");
         XWPFRun run = para.createRun();
         run.setFontSize(12);
         run.setText(text);
