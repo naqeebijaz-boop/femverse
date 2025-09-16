@@ -43,7 +43,7 @@ pipeline {
                     def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"
 
                     withCredentials([string(credentialsId: 'slack-bot-token', variable: 'SLACK_TOKEN')]) {
-                        // Upload file via Slack API using files.upload
+                        // ✅ Upload file via Slack API using files.upload
                         bat """
                             if exist "${reportPath}" (
                                 echo Uploading report to Slack...
