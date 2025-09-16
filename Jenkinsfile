@@ -7,12 +7,11 @@ pipeline {
     }
 
     triggers {
-        cron('*/5 * * * *')
+        cron('*/5 * * * *')   // Run every 5 minutes
     }
 
     environment {
-        GIT_CREDENTIALS_ID = 'github-credentials'  // Jenkins credentials for GitHub
-        SLACK_TOKEN_ID = 'slack-bot-token'        // Jenkins credentials for Slack
+        SLACK_TOKEN_ID = 'slack-bot-token'   // Jenkins secret for Slack
         SLACK_CHANNEL = '#femverse'
         REPO_URL = 'https://github.com/naqeebijaz-boop/femverse.git'
     }
@@ -20,41 +19,18 @@ pipeline {
     stages {
         stage('Checkout Code') {
             steps {
-                git branch: 'main', url: "${REPO_URL}", credentialsId: "${GIT_CREDENTIALS_ID}"
+                git branch: 'main', url: "${REPO_URL}"
             }
         }
 
-        stage('Build & Test') {
+        stage('Run TestNG Suite') {
             steps {
-                bat "mvn clean test"
+                // Run TestNG using testng.xml
+                bat "mvn clean test -DsuiteXmlFile=testng.xml"
             }
             post {
                 always {
                     junit '**/target/surefire-reports/*.xml'
-                }
-            }
-        }
-
-        stage('Rename Report with Timestamp') {
-            steps {
-                script {
-                    def timestamp = new Date().format("yyyyMMdd_HHmm")
-                    env.REPORT_FILE = "Femverse_API_Report_${timestamp}.docx"
-                    bat "rename Femverse_API_Report.docx ${env.REPORT_FILE}"
-                }
-            }
-        }
-
-        stage('Commit & Push Report to GitHub') {
-            steps {
-                script {
-                    bat """
-                        git config user.email "naqeeb.ijaz@imaginationai.net"
-                        git config user.name "Naqeeb Ijaz"
-                        git add ${env.REPORT_FILE}
-                        git commit -m "📄 Update Femverse report: Build #${BUILD_NUMBER}" || echo No changes to commit
-                        git push origin main
-                    """
                 }
             }
         }
@@ -71,7 +47,9 @@ pipeline {
         stage('Upload Report to Slack') {
             steps {
                 script {
-                    def reportPath = "${env.WORKSPACE}\\${env.REPORT_FILE}"
+                    // Path of generated report inside Jenkins workspace
+                    def reportPath = "${env.WORKSPACE}\\Femverse_API_Report.docx"
+
                     withCredentials([string(credentialsId: "${SLACK_TOKEN_ID}", variable: 'SLACK_TOKEN')]) {
                         bat """
                             curl -F "file=@${reportPath}" ^
@@ -88,7 +66,7 @@ pipeline {
 
     post {
         always {
-            echo "✅ Pipeline finished. Check GitHub & Slack for the latest report."
+            echo "✅ Pipeline finished. Slack notified with report."
         }
     }
 }
