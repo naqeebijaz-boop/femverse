@@ -33,7 +33,11 @@ pipeline {
             steps {
                 slackSend(
                     channel: "${SLACK_CHANNEL}",
+<<<<<<< HEAD
                     tokenCredentialId: 'slack-bot-token',   // Jenkins credential ID
+=======
+                    tokenCredentialId: 'slack-bot-token',   // Jenkins credentials ID
+>>>>>>> c3085edeb11cef73e02fb5f0a737e108f45324d8
                     color: 'good',
                     message: "✅ Femverse build finished!\nBranch: ${env.GIT_BRANCH}\nBuild: ${env.BUILD_NUMBER}"
                 )
@@ -43,6 +47,10 @@ pipeline {
         stage('Upload Report to Slack') {
             steps {
                 script {
+<<<<<<< HEAD
+=======
+                    // Adjust if your custom report is written somewhere else
+>>>>>>> c3085edeb11cef73e02fb5f0a737e108f45324d8
                     def reportPath = "target\\Femverse_API_Report.docx"
 
                     withCredentials([string(credentialsId: 'slack-bot-token', variable: 'SLACK_TOKEN')]) {
