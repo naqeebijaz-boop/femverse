@@ -7,6 +7,7 @@ import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageSz;
 
 import org.testng.*;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.math.BigInteger;
 import java.text.SimpleDateFormat;
@@ -19,15 +20,25 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
     private List<String> failedTests = new ArrayList<>();
     private List<String> skippedTests = new ArrayList<>();
 
-    // ✅ Save report directly in project root
+    // Report file name
     private final String reportFileName = "Femverse_API_Report.docx";
+
+    // Full report path (Jenkins WORKSPACE if available, else local project root)
+    private String reportPath;
 
     @Override
     public void onStart(ISuite suite) {
         document = new XWPFDocument();
 
+        // ✅ Determine where to save
+        String workspace = System.getenv("WORKSPACE");
+        if (workspace == null || workspace.isEmpty()) {
+            workspace = System.getProperty("user.dir");  // fallback for local run
+        }
+        reportPath = workspace + File.separator + reportFileName;
+
         // 🗑️ Delete old report if exists
-        java.io.File oldFile = new java.io.File(reportFileName);
+        File oldFile = new File(reportPath);
         if (oldFile.exists()) {
             oldFile.delete();
         }
@@ -112,13 +123,13 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
                 document.createParagraph().setPageBreak(true);
             }
 
-            // ✅ Save file in project root
-            try (FileOutputStream out = new FileOutputStream(reportFileName)) {
+            // ✅ Save file inside Jenkins WORKSPACE or project root
+            try (FileOutputStream out = new FileOutputStream(reportPath)) {
                 document.write(out);
             }
             document.close();
 
-            System.out.println("✅ Word report generated: " + reportFileName);
+            System.out.println("✅ Word report generated at: " + reportPath);
 
         } catch (Exception e) {
             e.printStackTrace();

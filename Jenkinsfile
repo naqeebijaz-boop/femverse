@@ -33,7 +33,7 @@ pipeline {
         stage('Upload Report to Slack') {
             steps {
                 script {
-                    def reportPath = "${env.WORKSPACE}\\Femverse_API_Report.docx"  // ✅ root directory
+                    def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"  // ✅ root workspace
 
                     withCredentials([string(credentialsId: 'slack-bot-token', variable: 'SLACK_TOKEN')]) {
                         bat """
