@@ -43,7 +43,7 @@ pipeline {
                     def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"
 
                     withCredentials([string(credentialsId: 'slack-bot-token', variable: 'SLACK_TOKEN')]) {
-                        // ✅ Upload file via Slack API using files.upload
+                        // ✅ Upload file via Slack API using files.uploadV2 (updated endpoint)
                         bat """
                             if exist "${reportPath}" (
                                 echo Uploading report to Slack...
@@ -51,7 +51,9 @@ pipeline {
                                      -F "channels=#femverse" ^
                                      -F "initial_comment=📊 Femverse Test Report - Build #${env.BUILD_NUMBER}" ^
                                      -H "Authorization: Bearer %SLACK_TOKEN%" ^
-                                     https://slack.com/api/files.upload
+                                     https://slack.com/api/files.uploadV2
+                                echo.
+                                echo Slack API response received.
                             ) else (
                                 echo Report not found: ${reportPath}
                             )
