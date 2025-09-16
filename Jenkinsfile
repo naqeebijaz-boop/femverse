@@ -15,7 +15,15 @@ pipeline {
 
         stage('Run TestNG Suite') {
             steps {
+                // ✅ Force Maven to use your testng.xml
                 bat "mvn clean test -DsuiteXmlFile=testng.xml"
+            }
+        }
+
+        stage('Archive Report') {
+            steps {
+                // ✅ Save the docx in Jenkins build artifacts
+                archiveArtifacts artifacts: 'Femverse_API_Report.docx', fingerprint: true
             }
         }
 
@@ -55,7 +63,7 @@ pipeline {
 
     post {
         always {
-            echo "✅ Pipeline finished. Slack notified with report."
+            echo "✅ Pipeline finished. Slack notified with report (if available)."
         }
     }
 }
