@@ -40,16 +40,18 @@ pipeline {
         stage('Upload Report to Slack') {
             steps {
                 script {
-                    def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"  // ✅ root workspace
+                    def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"
 
                     withCredentials([string(credentialsId: 'slack-bot-token', variable: 'SLACK_TOKEN')]) {
+                        // Upload file via Slack API using files.upload
                         bat """
                             if exist "${reportPath}" (
+                                echo Uploading report to Slack...
                                 curl -F "file=@${reportPath}" ^
-                                     -F "channel=#femverse" ^
+                                     -F "channels=#femverse" ^
                                      -F "initial_comment=📊 Femverse Test Report - Build #${env.BUILD_NUMBER}" ^
                                      -H "Authorization: Bearer %SLACK_TOKEN%" ^
-                                     https://slack.com/api/files.uploadV2
+                                     https://slack.com/api/files.upload
                             ) else (
                                 echo Report not found: ${reportPath}
                             )
