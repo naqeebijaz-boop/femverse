@@ -8,6 +8,7 @@ pipeline {
 
     environment {
         SLACK_CHANNEL = '#femverse'
+        SLACK_CREDENTIALS_ID = 'slack-bot-token' // Make sure this matches exactly
     }
 
     stages {
@@ -31,11 +32,16 @@ pipeline {
 
         stage('Send Slack Notification') {
             steps {
-                slackSend(
-                    channel: env.SLACK_CHANNEL,
-                    color: 'good',
-                    message: "✅ Femverse build #${env.BUILD_NUMBER} completed successfully."
-                )
+                script {
+                    withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
+                        slackSend(
+                            channel: env.SLACK_CHANNEL,
+                            color: 'good',
+                            message: "✅ Femverse build #${env.BUILD_NUMBER} completed successfully.",
+                            token: SLACK_TOKEN
+                        )
+                    }
+                }
             }
         }
 
@@ -45,14 +51,28 @@ pipeline {
                     def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"
                     
                     if (fileExists(reportPath)) {
-                        // Use the configured global Slack settings
-                        slackUploadFile(
-                            channel: env.SLACK_CHANNEL,
-                            filePath: reportPath,
-                            initialComment: "📊 Femverse Test Report - Build #${env.BUILD_NUMBER}"
-                        )
+                        withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
+                            bat """
+                                echo Uploading report to Slack...
+                                curl -F "file=@${reportPath}" ^
+                                     -F "channels=${env.SLACK_CHANNEL}" ^
+                                     -F "initial_comment=📊 Femverse Test Report - Build #${env.BUILD_NUMBER}" ^
+                                     -H "Authorization: Bearer %SLACK_TOKEN%" ^
+                                     https://slack.com/api/files.upload
+                            """
+                        }
+                        echo "✅ Report uploaded to Slack"
                     } else {
                         echo "⚠️ Report not found: ${reportPath}"
+                        // Send notification that report wasn't found
+                        withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
+                            slackSend(
+                                channel: env.SLACK_CHANNEL,
+                                color: 'warning',
+                                message: "⚠️ Femverse build #${env.BUILD_NUMBER} completed, but test report was not generated.",
+                                token: SLACK_TOKEN
+                            )
+                        }
                     }
                 }
             }
@@ -65,11 +85,16 @@ pipeline {
         }
         
         failure {
-            slackSend(
-                channel: env.SLACK_CHANNEL,
-                color: 'danger',
-                message: "❌ Femverse build #${env.BUILD_NUMBER} failed!"
-            )
+            script {
+                withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
+                    slackSend(
+                        channel: env.SLACK_CHANNEL,
+                        color: 'danger',
+                        message: "❌ Femverse build #${env.BUILD_NUMBER} failed!",
+                        token: SLACK_TOKEN
+                    )
+                }
+            }
         }
     }
 }
