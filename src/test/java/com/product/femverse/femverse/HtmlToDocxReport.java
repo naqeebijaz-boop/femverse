@@ -19,8 +19,8 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
     private List<String> failedTests = new ArrayList<>();
     private List<String> skippedTests = new ArrayList<>();
 
-    // ✅ Save inside target/ so Jenkins can find it
-    private final String reportFileName = "target/Femverse_API_Report.docx";
+    // ✅ Save report directly in project root
+    private final String reportFileName = "Femverse_API_Report.docx";
 
     @Override
     public void onStart(ISuite suite) {
@@ -112,6 +112,7 @@ public class HtmlToDocxReport implements ITestListener, ISuiteListener {
                 document.createParagraph().setPageBreak(true);
             }
 
+            // ✅ Save file in project root
             try (FileOutputStream out = new FileOutputStream(reportFileName)) {
                 document.write(out);
             }
