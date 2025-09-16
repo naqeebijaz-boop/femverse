@@ -6,6 +6,10 @@ pipeline {
         jdk 'JDK21'
     }
 
+    environment {
+        SLACK_CHANNEL = '#femverse'
+    }
+
     stages {
         stage('Checkout Code') {
             steps {
@@ -21,7 +25,6 @@ pipeline {
 
         stage('Archive Report') {
             steps {
-                // ✅ Save the docx in Jenkins build artifacts
                 archiveArtifacts artifacts: 'Femverse_API_Report.docx', fingerprint: true
             }
         }
@@ -29,10 +32,9 @@ pipeline {
         stage('Send Slack Notification') {
             steps {
                 slackSend(
-                    channel: '#femverse',
+                    channel: env.SLACK_CHANNEL,
                     color: 'good',
-                    message: "✅ Femverse build #${env.BUILD_NUMBER} completed successfully.",
-                    tokenCredentialId: 'slack-bot-token'
+                    message: "✅ Femverse build #${env.BUILD_NUMBER} completed successfully."
                 )
             }
         }
@@ -43,22 +45,14 @@ pipeline {
                     def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"
                     
                     if (fileExists(reportPath)) {
+                        // Use the configured global Slack settings
                         slackUploadFile(
-                            channel: '#femverse',
+                            channel: env.SLACK_CHANNEL,
                             filePath: reportPath,
-                            initialComment: "📊 Femverse Test Report - Build #${env.BUILD_NUMBER}",
-                            tokenCredentialId: 'slack-bot-token'
+                            initialComment: "📊 Femverse Test Report - Build #${env.BUILD_NUMBER}"
                         )
-                        echo "✅ Report successfully uploaded to Slack"
                     } else {
                         echo "⚠️ Report not found: ${reportPath}"
-                        // Send a notification that the report wasn't found
-                        slackSend(
-                            channel: '#femverse',
-                            color: 'warning',
-                            message: "⚠️ Femverse build #${env.BUILD_NUMBER} completed, but test report was not generated.",
-                            tokenCredentialId: 'slack-bot-token'
-                        )
                     }
                 }
             }
@@ -67,18 +61,14 @@ pipeline {
 
     post {
         always {
-            echo "✅ Pipeline finished. Slack notified with report (if available)."
-            
-            // Clean up workspace if needed
-            cleanWs()
+            echo "✅ Pipeline finished."
         }
         
         failure {
             slackSend(
-                channel: '#femverse',
+                channel: env.SLACK_CHANNEL,
                 color: 'danger',
-                message: "❌ Femverse build #${env.BUILD_NUMBER} failed!",
-                tokenCredentialId: 'slack-bot-token'
+                message: "❌ Femverse build #${env.BUILD_NUMBER} failed!"
             )
         }
     }
