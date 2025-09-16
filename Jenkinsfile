@@ -13,12 +13,11 @@ pipeline {
             }
         }
 
-        stage('Run TestNG Suite') {
-            steps {
-                // ✅ Force Maven to use your testng.xml
-                bat "mvn clean test -DsuiteXmlFile=testng.xml"
-            }
-        }
+       stage('Run TestNG Suite') {
+    steps {
+        bat "mvn clean test"
+    }
+}
 
         stage('Archive Report') {
             steps {
