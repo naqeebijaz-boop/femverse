@@ -13,12 +13,11 @@ pipeline {
             }
         }
 
-     stage('Run TestNG Suite') {
-    steps {
-        bat "mvn clean test -DsuiteXmlFile=testng.xml -Dsurefire.suiteXmlFiles=testng.xml"
-    }
-}
-
+        stage('Run TestNG Suite') {
+            steps {
+                bat "mvn clean test -DsuiteXmlFile=testng.xml -Dsurefire.suiteXmlFiles=testng.xml"
+            }
+        }
 
         stage('Archive Report') {
             steps {
@@ -47,10 +46,10 @@ pipeline {
                         bat """
                             if exist "${reportPath}" (
                                 curl -F "file=@${reportPath}" ^
+                                     -F "channel=#femverse" ^
                                      -F "initial_comment=📊 Femverse Test Report - Build #${env.BUILD_NUMBER}" ^
-                                     -F "channels=#femverse" ^
                                      -H "Authorization: Bearer %SLACK_TOKEN%" ^
-                                     https://slack.com/api/files.upload
+                                     https://slack.com/api/files.uploadV2
                             ) else (
                                 echo Report not found: ${reportPath}
                             )
