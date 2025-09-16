@@ -2,12 +2,12 @@
 <testng-results ignored="0" total="1" passed="0" failed="1" skipped="0">
   <reporter-output>
   </reporter-output>
-  <suite started-at="2025-09-16T12:04:29 PKT" name="DocufenceAPITestSuite" finished-at="2025-09-16T12:04:51 PKT" duration-ms="22313">
+  <suite started-at="2025-09-16T14:12:12 PKT" name="DocufenceAPITestSuite" finished-at="2025-09-16T14:12:35 PKT" duration-ms="22323">
     <groups>
     </groups>
-    <test started-at="2025-09-16T12:04:29 PKT" name="SigninTest" finished-at="2025-09-16T12:04:51 PKT" duration-ms="22313">
+    <test started-at="2025-09-16T14:12:12 PKT" name="SigninTest" finished-at="2025-09-16T14:12:35 PKT" duration-ms="22323">
       <class name="com.product.femverse.femverse.SocialLogin">
-        <test-method signature="signupNewUser()[pri:0, instance:com.product.femverse.femverse.SocialLogin@34e9fd99]" started-at="2025-09-16T12:04:29 PKT" name="signupNewUser" finished-at="2025-09-16T12:04:51 PKT" duration-ms="22279" status="FAIL">
+        <test-method signature="signupNewUser()[pri:0, instance:com.product.femverse.femverse.SocialLogin@34e9fd99]" started-at="2025-09-16T14:12:12 PKT" name="signupNewUser" finished-at="2025-09-16T14:12:35 PKT" duration-ms="22288" status="FAIL">
           <exception class="java.net.ConnectException">
             <message>
               <![CDATA[Connection timed out: connect]]>

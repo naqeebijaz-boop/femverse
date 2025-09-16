@@ -13,11 +13,12 @@ pipeline {
             }
         }
 
-       stage('Run TestNG Suite') {
+     stage('Run TestNG Suite') {
     steps {
-        bat "mvn clean test"
+        bat "mvn clean test -DsuiteXmlFile=testng.xml -Dsurefire.suiteXmlFiles=testng.xml"
     }
 }
+
 
         stage('Archive Report') {
             steps {
