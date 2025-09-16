@@ -41,23 +41,24 @@ pipeline {
             steps {
                 script {
                     def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"
-
-                    withCredentials([string(credentialsId: 'slack-bot-token', variable: 'SLACK_TOKEN')]) {
-                        // ✅ Upload file via Slack API using files.uploadV2 (updated endpoint)
-                        bat """
-                            if exist "${reportPath}" (
-                                echo Uploading report to Slack...
-                                curl -F "file=@${reportPath}" ^
-                                     -F "channels=#femverse" ^
-                                     -F "initial_comment=📊 Femverse Test Report - Build #${env.BUILD_NUMBER}" ^
-                                     -H "Authorization: Bearer %SLACK_TOKEN%" ^
-                                     https://slack.com/api/files.uploadV2
-                                echo.
-                                echo Slack API response received.
-                            ) else (
-                                echo Report not found: ${reportPath}
-                            )
-                        """
+                    
+                    if (fileExists(reportPath)) {
+                        slackUploadFile(
+                            channel: '#femverse',
+                            filePath: reportPath,
+                            initialComment: "📊 Femverse Test Report - Build #${env.BUILD_NUMBER}",
+                            tokenCredentialId: 'slack-bot-token'
+                        )
+                        echo "✅ Report successfully uploaded to Slack"
+                    } else {
+                        echo "⚠️ Report not found: ${reportPath}"
+                        // Send a notification that the report wasn't found
+                        slackSend(
+                            channel: '#femverse',
+                            color: 'warning',
+                            message: "⚠️ Femverse build #${env.BUILD_NUMBER} completed, but test report was not generated.",
+                            tokenCredentialId: 'slack-bot-token'
+                        )
                     }
                 }
             }
@@ -67,6 +68,18 @@ pipeline {
     post {
         always {
             echo "✅ Pipeline finished. Slack notified with report (if available)."
+            
+            // Clean up workspace if needed
+            cleanWs()
+        }
+        
+        failure {
+            slackSend(
+                channel: '#femverse',
+                color: 'danger',
+                message: "❌ Femverse build #${env.BUILD_NUMBER} failed!",
+                tokenCredentialId: 'slack-bot-token'
+            )
         }
     }
 }
