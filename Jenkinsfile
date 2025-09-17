@@ -48,6 +48,7 @@ pipeline {
         stage('Upload Report to Slack') {
             steps {
                 script {
+<<<<<<< HEAD
                     def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"
                     
                     if (fileExists(reportPath)) {
@@ -83,6 +84,20 @@ pipeline {
                                 color: 'warning',
                                 message: "⚠️ Femverse build #${env.BUILD_NUMBER} completed, but test report was not generated.",
                                 token: SLACK_TOKEN
+=======
+                    def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"  // ✅ root workspace
+
+                    withCredentials([string(credentialsId: 'slack-bot-token', variable: 'SLACK_TOKEN')]) {
+                        bat """
+                            if exist "${reportPath}" (
+                                curl -F "file=@${reportPath}" ^
+                                     -F "channel=#femverse" ^
+                                     -F "initial_comment=📊 Femverse Test Report - Build #${env.BUILD_NUMBER}" ^
+                                     -H "Authorization: Bearer %SLACK_TOKEN%" ^
+                                     https://slack.com/api/files.uploadV2
+                            ) else (
+                                echo Report not found: ${reportPath}
+>>>>>>> 325ad7b (Resolved merge conflicts)
                             )
                         }
                     }
