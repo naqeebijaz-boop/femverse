@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         SLACK_CHANNEL = '#femverse'
-        SLACK_CREDENTIALS_ID = 'slack-bot-token' // Make sure this matches exactly
+        SLACK_CREDENTIALS_ID = 'slack-bot-token'
     }
 
     stages {
@@ -52,19 +52,21 @@ pipeline {
                     
                     if (fileExists(reportPath)) {
                         withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
+                            // Use the correct Slack API approach
                             bat """
                                 echo Uploading report to Slack...
-                                curl -F "file=@${reportPath}" ^
+                                curl -X POST ^
+                                     -H "Authorization: Bearer %SLACK_TOKEN%" ^
+                                     -H "Content-Type: multipart/form-data" ^
+                                     -F "file=@${reportPath}" ^
                                      -F "channels=${env.SLACK_CHANNEL}" ^
                                      -F "initial_comment=📊 Femverse Test Report - Build #${env.BUILD_NUMBER}" ^
-                                     -H "Authorization: Bearer %SLACK_TOKEN%" ^
-                                     https://slack.com/api/files.upload
+                                     "https://slack.com/api/files.upload"
                             """
                         }
                         echo "✅ Report uploaded to Slack"
                     } else {
                         echo "⚠️ Report not found: ${reportPath}"
-                        // Send notification that report wasn't found
                         withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
                             slackSend(
                                 channel: env.SLACK_CHANNEL,
