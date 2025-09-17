@@ -8,7 +8,6 @@ pipeline {
 
     environment {
         SLACK_CHANNEL = '#femverse'
-        SLACK_CREDENTIALS_ID = 'slack-bot-token'
         REPORT_NAME = 'Femverse_API_Report.docx'
     }
 
@@ -19,210 +18,109 @@ pipeline {
             }
         }
 
-        stage('Clean Workspace') {
+        stage('Debug: Check Project Structure') {
             steps {
                 bat """
-                    echo "Cleaning up any existing report..."
-                    if exist "${env.REPORT_NAME}" del "${env.REPORT_NAME}"
-                    if exist "target/${env.REPORT_NAME}" del "target/${env.REPORT_NAME}"
-                    if exist "test-output/${env.REPORT_NAME}" del "test-output/${env.REPORT_NAME}"
+                    echo === PROJECT STRUCTURE ANALYSIS ===
+                    echo Workspace: ${env.WORKSPACE}
+                    echo Current directory:
+                    cd
+                    echo Java source files:
+                    dir src/test/java/com/product/femverse/femverse /b
+                    echo testng.xml content:
+                    type testng.xml
                 """
             }
         }
 
-        stage('Run TestNG Suite') {
-            steps {
-                bat "mvn clean test -DsuiteXmlFile=testng.xml -Dsurefire.suiteXmlFiles=testng.xml"
-            }
-        }
-
-        stage('Locate and Verify Report') {
-            steps {
-                script {
-                    echo "🔍 Searching for generated report..."
-                    
-                    // Check all possible locations
-                    def locations = [
-                        "${env.WORKSPACE}/${env.REPORT_NAME}",
-                        "${env.WORKSPACE}/target/${env.REPORT_NAME}", 
-                        "${env.WORKSPACE}/test-output/${env.REPORT_NAME}",
-                        "./${env.REPORT_NAME}",
-                        "target/${env.REPORT_NAME}",
-                        "test-output/${env.REPORT_NAME}"
-                    ]
-                    
-                    def reportFound = false
-                    def actualReportPath = ""
-                    
-                    locations.each { location ->
-                        if (fileExists(location)) {
-                            actualReportPath = location
-                            reportFound = true
-                            echo "✅ Found report at: ${location}"
-                        }
-                    }
-                    
-                    if (reportFound) {
-                        // Copy to workspace root for easy access
-                        bat """
-                            copy "${actualReportPath}" "${env.REPORT_NAME}"
-                            echo "Report copied to workspace root"
-                            echo "File size:"
-                            for %%i in ("${env.REPORT_NAME}") do echo %%~zi bytes
-                        """
-                    } else {
-                        echo "❌ Report not found in any location!"
-                        // Create a debug report
-                        bat """
-                            echo "Test Execution Summary" > "${env.REPORT_NAME}"
-                            echo "Build: ${env.BUILD_NUMBER}" >> "${env.REPORT_NAME}"
-                            echo "Date: %DATE% %TIME%" >> "${env.REPORT_NAME}"
-                            echo "Status: Tests ran but report generation failed" >> "${env.REPORT_NAME}"
-                            echo "Check HtmlToDocxReport listener implementation" >> "${env.REPORT_NAME}"
-                        """
-                    }
-                }
-            }
-        }
-
-        stage('Debug: Check File System') {
+        stage('Clean and Compile') {
             steps {
                 bat """
-                    echo "=== DEBUG: File System Analysis ==="
-                    echo "Workspace: ${env.WORKSPACE}"
-                    echo "Current dir:"
-                    cd
-                    echo "Files in workspace:"
-                    dir /b
-                    echo "Files in target:"
-                    dir target /b
-                    echo "Files in test-output:"
-                    if exist test-output (dir test-output /b) else (echo test-output directory not found)
-                    echo "Report file info:"
+                    echo Cleaning and compiling...
+                    mvn clean test-compile
+                    echo Compiled classes:
+                    dir target/test-classes/com/product/femverse/femverse /b
+                """
+            }
+        }
+
+        stage('Run Tests with Debug') {
+            steps {
+                bat """
+                    echo Running tests with detailed output...
+                    mvn test -DsuiteXmlFile=testng.xml -Dsurefire.suiteXmlFiles=testng.xml -X
+                """
+            }
+        }
+
+        stage('Check Results') {
+            steps {
+                bat """
+                    echo === TEST EXECUTION RESULTS ===
+                    echo Surefire reports:
+                    if exist target/surefire-reports (
+                        dir target/surefire-reports /b
+                        echo Test results:
+                        type target\\surefire-reports\\*.txt 2>nul || echo No text reports
+                    )
+                    
+                    echo TestNG reports:
+                    if exist test-output (
+                        dir test-output /b
+                    )
+                    
+                    echo Checking for DOCX report:
                     if exist "${env.REPORT_NAME}" (
-                        echo "Report exists at root"
+                        echo DOCX report found!
                         for %%i in ("${env.REPORT_NAME}") do echo Size: %%~zi bytes
                     ) else (
-                        echo "Report not found at root"
+                        echo No DOCX report generated
                     )
                 """
             }
         }
 
-        stage('Archive Report') {
+        stage('Generate Report if Missing') {
             steps {
                 script {
-                    if (fileExists(env.REPORT_NAME)) {
-                        archiveArtifacts artifacts: "${env.REPORT_NAME}", fingerprint: true
-                        echo "✅ Report archived successfully"
-                    } else {
-                        error "❌ No report found to archive after all attempts"
-                    }
-                }
-            }
-        }
-
-        stage('Send Slack Notification') {
-            steps {
-                script {
-                    withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
-                        slackSend(
-                            channel: env.SLACK_CHANNEL,
-                            color: 'good',
-                            message: "✅ Femverse build #${env.BUILD_NUMBER} completed. Report available for download.",
-                            token: SLACK_TOKEN
-                        )
-                    }
-                }
-            }
-        }
-
-        stage('Upload Report Info to Slack') {
-            steps {
-                script {
-                    withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
+                    if (!fileExists(env.REPORT_NAME)) {
+                        echo "Creating manual test report since no tests ran..."
                         bat """
-                            curl -X POST ^
-                                 -H "Authorization: Bearer %SLACK_TOKEN%" ^
-                                 -H "Content-type: application/json" ^
-                                 -d "{
-                                    \\"channel\\":\\"${env.SLACK_CHANNEL}\\",
-                                    \\"text\\":\\"📊 Femverse Test Report - Build #${env.BUILD_NUMBER}\\",
-                                    \\"blocks\\": [
-                                        {
-                                            \\"type\\": \\"section\\",
-                                            \\"text\\": {
-                                                \\"type\\": \\"mrkdwn\\",
-                                                \\"text\\": \\"*📊 Femverse Test Report - Build #${env.BUILD_NUMBER}*\\n✅ Test execution completed\\"
-                                            }
-                                        },
-                                        {
-                                            \\"type\\": \\"section\\",
-                                            \\"text\\": {
-                                                \\"type\\": \\"mrkdwn\\",
-                                                \\"text\\": \\"*📋 Report Available at:*\\n${env.BUILD_URL}artifact/${env.REPORT_NAME}\\"
-                                            }
-                                        },
-                                        {
-                                            \\"type\\": \\"actions\\",
-                                            \\"elements\\": [
-                                                {
-                                                    \\"type\\": \\"button\\",
-                                                    \\"text\\": {
-                                                        \\"type\\": \\"plain_text\\",
-                                                        \\"text\\": \\"📥 Download Report\\"
-                                                    },
-                                                    \\"url\\": \\"${env.BUILD_URL}artifact/${env.REPORT_NAME}\\"
-                                                },
-                                                {
-                                                    \\"type\\": \\"button\\",
-                                                    \\"text\\": {
-                                                        \\"type\\": \\"plain_text\\",
-                                                        \\"text\\": \\"🔍 View Build\\"
-                                                    },
-                                                    \\"url\\": \\"${env.BUILD_URL}\\"
-                                                }
-                                            ]
-                                        }
-                                    ]
-                                 }" ^
-                                 "https://slack.com/api/chat.postMessage"
+                            echo FEMVERSE API TEST REPORT > "${env.REPORT_NAME}"
+                            echo ========================= >> "${env.REPORT_NAME}"
+                            echo Build Number: ${env.BUILD_NUMBER} >> "${env.REPORT_NAME}"
+                            echo Execution Date: %DATE% %TIME% >> "${env.REPORT_NAME}"
+                            echo Status: No tests executed >> "${env.REPORT_NAME}"
+                            echo >> "${env.REPORT_NAME}"
+                            echo Possible issues: >> "${env.REPORT_NAME}"
+                            echo 1. Test classes not found by TestNG >> "${env.REPORT_NAME}"
+                            echo 2. Incorrect package structure in testng.xml >> "${env.REPORT_NAME}"
+                            echo 3. Test compilation failed >> "${env.REPORT_NAME}"
                         """
                     }
                 }
+            }
+        }
+
+        stage('Archive Results') {
+            steps {
+                archiveArtifacts artifacts: "**/*.docx, **/surefire-reports/*, **/test-output/*", fingerprint: true
+                junit 'target/surefire-reports/*.xml'
             }
         }
     }
 
     post {
         always {
-            echo "✅ Pipeline finished."
-            
-            // Final verification
+            echo "=== FINAL STATUS ==="
             bat """
-                echo "=== FINAL VERIFICATION ==="
-                echo "Workspace content:"
+                echo Workspace content:
                 dir /b
-                echo "Report file details:"
+                echo Report file:
                 if exist "${env.REPORT_NAME}" (
                     for %%i in ("${env.REPORT_NAME}") do echo "File: %%i, Size: %%~zi bytes"
-                ) else (
-                    echo "❌ REPORT FILE NOT FOUND!"
                 )
             """
-        }
-        
-        failure {
-            script {
-                withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
-                    slackSend(
-                        channel: env.SLACK_CHANNEL,
-                        color: 'danger',
-                        message: "❌ Femverse build #${env.BUILD_NUMBER} failed! Check Jenkins for details.",
-                        token: SLACK_TOKEN
-                    )
-                }
-            }
         }
     }
 }
