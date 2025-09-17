@@ -48,12 +48,11 @@ pipeline {
         stage('Upload Report to Slack') {
             steps {
                 script {
-<<<<<<< HEAD
                     def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"
                     
                     if (fileExists(reportPath)) {
                         withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
-                            // Method 1: Try the new files.uploadV2 endpoint (if available)
+                            // Attempt to upload report
                             bat """
                                 echo "Attempting to upload report via Slack API..."
                                 curl -X POST ^
@@ -63,11 +62,10 @@ pipeline {
                                      -F "initial_comment=📊 Femverse Test Report - Build #${env.BUILD_NUMBER}" ^
                                      "https://slack.com/api/files.uploadV2"
                             """
-                            
-                            // Method 2: If the above fails, use chat.postMessage with a shareable link
-                            // First, we'll just send a message since file upload is problematic
+
+                            // Fallback: send message with link to Jenkins artifact
                             bat """
-                                echo "Sending notification with chat.postMessage..."
+                                echo "Sending fallback notification with chat.postMessage..."
                                 curl -X POST ^
                                      -H "Authorization: Bearer %SLACK_TOKEN%" ^
                                      -H "Content-type: application/json" ^
@@ -84,20 +82,6 @@ pipeline {
                                 color: 'warning',
                                 message: "⚠️ Femverse build #${env.BUILD_NUMBER} completed, but test report was not generated.",
                                 token: SLACK_TOKEN
-=======
-                    def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"  // ✅ root workspace
-
-                    withCredentials([string(credentialsId: 'slack-bot-token', variable: 'SLACK_TOKEN')]) {
-                        bat """
-                            if exist "${reportPath}" (
-                                curl -F "file=@${reportPath}" ^
-                                     -F "channel=#femverse" ^
-                                     -F "initial_comment=📊 Femverse Test Report - Build #${env.BUILD_NUMBER}" ^
-                                     -H "Authorization: Bearer %SLACK_TOKEN%" ^
-                                     https://slack.com/api/files.uploadV2
-                            ) else (
-                                echo Report not found: ${reportPath}
->>>>>>> 325ad7b (Resolved merge conflicts)
                             )
                         }
                     }
