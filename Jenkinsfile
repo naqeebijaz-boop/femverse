@@ -52,7 +52,7 @@ pipeline {
                     
                     if (fileExists(reportPath)) {
                         withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
-                            // Attempt to upload report
+                            // Method 1: Try the new files.uploadV2 endpoint (if available)
                             bat """
                                 echo "Attempting to upload report via Slack API..."
                                 curl -X POST ^
@@ -62,10 +62,11 @@ pipeline {
                                      -F "initial_comment=📊 Femverse Test Report - Build #${env.BUILD_NUMBER}" ^
                                      "https://slack.com/api/files.uploadV2"
                             """
-
-                            // Fallback: send message with link to Jenkins artifact
+                            
+                            // Method 2: If the above fails, use chat.postMessage with a shareable link
+                            // First, we'll just send a message since file upload is problematic
                             bat """
-                                echo "Sending fallback notification with chat.postMessage..."
+                                echo "Sending notification with chat.postMessage..."
                                 curl -X POST ^
                                      -H "Authorization: Bearer %SLACK_TOKEN%" ^
                                      -H "Content-type: application/json" ^

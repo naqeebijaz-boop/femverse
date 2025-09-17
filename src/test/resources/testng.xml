@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<suite name="DocufenceAPITestSuite">
+
+    <listeners>
+        <listener class-name="com.product.femverse.femverse.HtmlToDocxReport"/>
+    </listeners>
+
+    <test name="SigninTest">
+        <classes>
+            <class name="com.product.femverse.femverse.SocialLogin"/>
+        </classes>
+    </test>
+
+</suite>
