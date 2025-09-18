@@ -6,9 +6,9 @@
         <listener class-name="com.product.femverse.femverse.HtmlToDocxReport"/>
     </listeners>
 
-    <test name="SigninTest">
+    <test name="WomenPostmanRunnerTest">
         <classes>
-            <class name="com.product.femverse.femverse.SocialLogin"/>
+            <class name="com.product.femverse.femverse.WomenPostmanRunner"/>
         </classes>
     </test>
 

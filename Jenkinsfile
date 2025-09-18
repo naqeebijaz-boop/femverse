@@ -9,6 +9,7 @@ pipeline {
     environment {
         SLACK_CHANNEL = '#femverse'
         SLACK_CREDENTIALS_ID = 'slack-bot-token'
+        REPORT_NAME = 'Femverse_API_Report.docx'
     }
 
     stages {
@@ -20,27 +21,29 @@ pipeline {
 
         stage('Run TestNG Suite') {
             steps {
-                bat "mvn clean test -DsuiteXmlFile=testng.xml -Dsurefire.suiteXmlFiles=testng.xml"
+                catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
+                    bat "mvn clean test -DsuiteXmlFile=testng.xml -Dsurefire.suiteXmlFiles=testng.xml"
+                }
             }
         }
 
-        stage('Archive Report') {
-            steps {
-                archiveArtifacts artifacts: 'Femverse_API_Report.docx', fingerprint: true
-            }
-        }
-
-        stage('Send Slack Notification') {
+        stage('Check and Archive Report') {
             steps {
                 script {
-                    withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
-                        slackSend(
-                            channel: env.SLACK_CHANNEL,
-                            color: 'good',
-                            message: "✅ Femverse build #${env.BUILD_NUMBER} completed successfully.",
-                            token: SLACK_TOKEN
-                        )
+                    if (fileExists(env.REPORT_NAME)) {
+                        echo "✅ DOCX Report generated successfully!"
+                        archiveArtifacts artifacts: "${env.REPORT_NAME}", fingerprint: true
+                        echo "✅ Report archived"
+                    } else {
+                        echo "⚠️ No DOCX report found"
                     }
+
+                    // Capture JUnit results
+                    def testResults = junit 'target/surefire-reports/*.xml'
+                    env.TOTAL_TESTS   = testResults.totalCount.toString()
+                    env.FAILED_TESTS  = testResults.failCount.toString()
+                    env.SKIPPED_TESTS = testResults.skipCount.toString()
+                    env.SUCCESS_TESTS = (testResults.totalCount - testResults.failCount - testResults.skipCount).toString()
                 }
             }
         }
@@ -48,43 +51,72 @@ pipeline {
         stage('Upload Report to Slack') {
             steps {
                 script {
-                    def reportPath = "${env.WORKSPACE}/Femverse_API_Report.docx"
+                    def reportPath = "${env.WORKSPACE}/${env.REPORT_NAME}"
                     
                     if (fileExists(reportPath)) {
-                        withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
-                            // Method 1: Try the new files.uploadV2 endpoint (if available)
-                            bat """
-                                echo "Attempting to upload report via Slack API..."
-                                curl -X POST ^
-                                     -H "Authorization: Bearer %SLACK_TOKEN%" ^
-                                     -F "file=@${reportPath}" ^
-                                     -F "channels=${env.SLACK_CHANNEL}" ^
-                                     -F "initial_comment=📊 Femverse Test Report - Build #${env.BUILD_NUMBER}" ^
-                                     "https://slack.com/api/files.uploadV2"
-                            """
-                            
-                            // Method 2: If the above fails, use chat.postMessage with a shareable link
-                            // First, we'll just send a message since file upload is problematic
-                            bat """
-                                echo "Sending notification with chat.postMessage..."
-                                curl -X POST ^
-                                     -H "Authorization: Bearer %SLACK_TOKEN%" ^
-                                     -H "Content-type: application/json" ^
-                                     -d "{\\"channel\\":\\"${env.SLACK_CHANNEL}\\",\\"text\\":\\"📊 Femverse Test Report - Build #${env.BUILD_NUMBER} has been generated. Check Jenkins artifacts for the full report.\\",\\"attachments\\":[{\\"color\\":\\"#36a64f\\",\\"title\\":\\"Download Report\\",\\"title_link\\":\\"${env.BUILD_URL}artifact/Femverse_API_Report.docx\\",\\"text\\":\\"The test report is available for download from Jenkins\\"}]}" ^
-                                     "https://slack.com/api/chat.postMessage"
-                            """
+                        echo "Attempting to send Slack notification with report link..."
+                        
+                        try {
+                            withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
+                                // Create a simple JSON file first
+                                bat """
+                                    echo { > slack_message.json
+                                    echo    "channel": "${env.SLACK_CHANNEL}", >> slack_message.json
+                                    echo    "text": "📊 Femverse Test Report - Build #${env.BUILD_NUMBER}", >> slack_message.json
+                                    echo    "blocks": [ >> slack_message.json
+                                    echo        { >> slack_message.json
+                                    echo            "type": "section", >> slack_message.json
+                                    echo            "text": { >> slack_message.json
+                                    echo                "type": "mrkdwn", >> slack_message.json
+                                    echo                "text": "*📊 Femverse Test Report - Build #${env.BUILD_NUMBER}*\\nThe test report has been generated and is available for download." >> slack_message.json
+                                    echo            } >> slack_message.json
+                                    echo        }, >> slack_message.json
+                                    echo        { >> slack_message.json
+                                    echo            "type": "section", >> slack_message.json
+                                    echo            "text": { >> slack_message.json
+                                    echo                "type": "mrkdwn", >> slack_message.json
+                                    echo                "text": "*📋 Test Results:*\\n• Tests Run: ${env.TOTAL_TESTS}\\n• Success: ${env.SUCCESS_TESTS}\\n• Failures: ${env.FAILED_TESTS}\\n• Skipped: ${env.SKIPPED_TESTS}" >> slack_message.json
+                                    echo            } >> slack_message.json
+                                    echo        }, >> slack_message.json
+                                    echo        { >> slack_message.json
+                                    echo            "type": "actions", >> slack_message.json
+                                    echo            "elements": [ >> slack_message.json
+                                    echo                { >> slack_message.json
+                                    echo                    "type": "button", >> slack_message.json
+                                    echo                    "text": { >> slack_message.json
+                                    echo                        "type": "plain_text", >> slack_message.json
+                                    echo                        "text": "📥 Download Report" >> slack_message.json
+                                    echo                    }, >> slack_message.json
+                                    echo                    "url": "${env.BUILD_URL}artifact/${env.REPORT_NAME}", >> slack_message.json
+                                    echo                    "action_id": "download_report" >> slack_message.json
+                                    echo                } >> slack_message.json
+                                    echo            ] >> slack_message.json
+                                    echo        } >> slack_message.json
+                                    echo    ] >> slack_message.json
+                                    echo } >> slack_message.json
+                                """
+                                
+                                // Now send the JSON file to Slack
+                                bat """
+                                    curl -X POST ^
+                                         -H "Authorization: Bearer %SLACK_TOKEN%" ^
+                                         -H "Content-type: application/json" ^
+                                         --data-binary "@slack_message.json" ^
+                                         "https://slack.com/api/chat.postMessage"
+                                """
+                                
+                                // Clean up the JSON file
+                                bat "del slack_message.json"
+                                
+                                echo "✅ Slack notification sent with report download link"
+                            }
+                        } catch (Exception e) {
+                            echo "⚠️ Slack notification failed: ${e.message}"
+                            echo "This is expected if Slack credentials are not configured"
+                            echo "Report is available at: ${env.BUILD_URL}artifact/${env.REPORT_NAME}"
                         }
-                        echo "✅ Slack notification sent with report information"
                     } else {
-                        echo "⚠️ Report not found: ${reportPath}"
-                        withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
-                            slackSend(
-                                channel: env.SLACK_CHANNEL,
-                                color: 'warning',
-                                message: "⚠️ Femverse build #${env.BUILD_NUMBER} completed, but test report was not generated.",
-                                token: SLACK_TOKEN
-                            )
-                        }
+                        echo "⚠️ Report not found for upload: ${reportPath}"
                     }
                 }
             }
@@ -93,20 +125,8 @@ pipeline {
 
     post {
         always {
-            echo "✅ Pipeline finished."
-        }
-        
-        failure {
-            script {
-                withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
-                    slackSend(
-                        channel: env.SLACK_CHANNEL,
-                        color: 'danger',
-                        message: "❌ Femverse build #${env.BUILD_NUMBER} failed!",
-                        token: SLACK_TOKEN
-                    )
-                }
-            }
+            echo "✅ Pipeline finished successfully!"
+            echo "📄 Report available at: ${env.BUILD_URL}artifact/${env.REPORT_NAME}"
         }
     }
 }

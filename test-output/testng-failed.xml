@@ -4,13 +4,13 @@
   <listeners>
     <listener class-name="com.product.femverse.femverse.HtmlToDocxReport"/>
   </listeners>
-  <test thread-count="5" name="SigninTest(failed)">
+  <test thread-count="5" name="WomenPostmanRunnerTest(failed)">
     <classes>
-      <class name="com.product.femverse.femverse.SocialLogin">
+      <class name="com.product.femverse.femverse.WomenPostmanRunner">
         <methods>
-          <include name="signupNewUser"/>
+          <include name="runWomenCollection"/>
         </methods>
-      </class> <!-- com.product.femverse.femverse.SocialLogin -->
+      </class> <!-- com.product.femverse.femverse.WomenPostmanRunner -->
     </classes>
-  </test> <!-- SigninTest(failed) -->
+  </test> <!-- WomenPostmanRunnerTest(failed) -->
 </suite> <!-- Failed suite [DocufenceAPITestSuite] -->
