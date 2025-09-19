@@ -12,6 +12,10 @@ pipeline {
         REPORT_NAME = 'Femverse_API_Report.docx'
     }
 
+    triggers {
+        cron('H/5 * * * *') // Runs every 5 minutes
+    }
+
     stages {
         stage('Checkout Code') {
             steps {

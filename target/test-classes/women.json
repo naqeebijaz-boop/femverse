@@ -6876,7 +6876,7 @@
 		},
 		{
 			"key": "token",
-			"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6ImQ0NWMyYTBjLWIyZTYtNGFhNC1hNjZkLWU0MTc1YWI0NzZjYSIsImVtYWlsIjoibmFxZWViLmlqYXpAaW1hZ2luYXRpb25haS5uZXQiLCJyb2xlcyI6WyJ1c2VyIl0sImlzX3ZlcmlmaWVkIjp0cnVlLCJleHAiOjE3NTgyMTA0NDF9.G9p5ARauXdvXcBjt0pPxc2dJcNizDUsVMHrLHAGN77g"
+			"value": ""
 		},
 		{
 			"key": "base_url_v2",
