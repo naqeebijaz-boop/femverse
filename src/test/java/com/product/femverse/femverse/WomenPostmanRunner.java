@@ -3,6 +3,7 @@ package com.product.femverse.femverse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.restassured.RestAssured;
+import io.restassured.config.HttpClientConfig;
 import io.restassured.response.Response;
 import org.testng.annotations.Test;
 
@@ -132,15 +133,15 @@ public class WomenPostmanRunner {
                 System.out.println("✅ PASSED | Status Code: " + statusCode);
                 resultMap.put("status", "PASSED");
             } else {
-                System.out.println("❌ FAILED | Status Code: " + statusCode);
+                System.out.println("❌ FAILED | Status Code: " + statusCode + " | Response: " + responseBody);
                 resultMap.put("status", "FAILED");
             }
 
         } catch (Exception e) {
-            System.out.println("❌ FAILED | " + e.getMessage());
+            System.out.println("❌ FAILED | Exception: " + e.getClass().getSimpleName() + " | " + e.getMessage());
             resultMap.put("status", "FAILED");
             resultMap.put("statusCode", 500);
-            resultMap.put("response", e.getMessage());
+            resultMap.put("response", e.getClass().getSimpleName() + ": " + e.getMessage());
         }
 
         testResults.add(resultMap);
@@ -187,7 +188,14 @@ public class WomenPostmanRunner {
 
     private Response sendRequest(String method, String url, Map<String, String> headers, String body) {
         RestAssured.useRelaxedHTTPSValidation();
-        io.restassured.specification.RequestSpecification request = given().headers(headers);
+
+        io.restassured.specification.RequestSpecification request = given()
+                .headers(headers)
+                .config(RestAssured.config().httpClient(HttpClientConfig.httpClientConfig()
+                        .setParam("http.connection.timeout", 10000)           // 10 sec connect timeout
+                        .setParam("http.socket.timeout", 10000)              // 10 sec read timeout
+                        .setParam("http.connection-manager.timeout", 10000)  // 10 sec manager timeout
+                ));
 
         if (body != null && !body.isEmpty()) request.body(body);
 
@@ -195,6 +203,7 @@ public class WomenPostmanRunner {
             case "POST" -> request.post(url);
             case "PUT" -> request.put(url);
             case "PATCH" -> request.patch(url);
+          //  case "DELETE" -> request.delete(url);
             default -> request.get(url);
         };
     }
