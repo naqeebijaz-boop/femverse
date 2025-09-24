@@ -26,7 +26,7 @@ pipeline {
         stage('Run TestNG Suite') {
             steps {
                 catchError(buildResult: 'SUCCESS', stageResult: 'UNSTABLE') {
-                    bat "mvn clean test -DsuiteXmlFile=testng.xml -Dsurefire.suiteXmlFiles=testng.xml"
+                    bat 'mvn clean test -DsuiteXmlFile=testng.xml -Dsurefire.suiteXmlFiles=testng.xml'
                 }
             }
         }
@@ -42,18 +42,16 @@ pipeline {
                         echo "⚠️ No DOCX report found"
                     }
 
-                    // Default JUnit capture (backup)
                     def testResults = junit 'target/surefire-reports/*.xml'
                     env.TOTAL_TESTS   = testResults.totalCount.toString()
                     env.FAILED_TESTS  = testResults.failCount.toString()
                     env.SKIPPED_TESTS = testResults.skipCount.toString()
                     env.SUCCESS_TESTS = (testResults.totalCount - testResults.failCount - testResults.skipCount).toString()
 
-                    // ✅ Override with ConsoleSummaryListener summary.txt if exists
                     if (fileExists('summary.txt')) {
-                        def summary = readFile('summary.txt').trim().split("\\r?\\n")
+                        def summary = readFile('summary.txt').trim().split('\n')
                         summary.each { line ->
-                            def parts = line.split("=")
+                            def parts = line.split('=')
                             if (parts.size() == 2) {
                                 def key = parts[0].trim()
                                 def val = parts[1].trim()
@@ -74,71 +72,57 @@ pipeline {
         stage('Upload Report to Slack') {
             steps {
                 script {
-                    def reportPath = "${env.WORKSPACE}/${env.REPORT_NAME}"
-                    
-                    if (fileExists(reportPath)) {
-                        echo "Attempting to send Slack notification with report link..."
-                        
-                        try {
-                            withCredentials([string(credentialsId: "${env.SLACK_CREDENTIALS_ID}", variable: 'SLACK_TOKEN')]) {
-                                // Create a simple JSON file first
-                                bat """
-                                    echo { > slack_message.json
-                                    echo    "channel": "${env.SLACK_CHANNEL}", >> slack_message.json
-                                    echo    "text": "📊 Femverse Test Report - Build #${env.BUILD_NUMBER}", >> slack_message.json
-                                    echo    "blocks": [ >> slack_message.json
-                                    echo        { >> slack_message.json
-                                    echo            "type": "section", >> slack_message.json
-                                    echo            "text": { >> slack_message.json
-                                    echo                "type": "mrkdwn", >> slack_message.json
-                                    echo                "text": "*📊 Femverse Test Report - Build #${env.BUILD_NUMBER}*\\nThe test report has been generated and is available for download." >> slack_message.json
-                                    echo            } >> slack_message.json
-                                    echo        }, >> slack_message.json
-                                    echo        { >> slack_message.json
-                                    echo            "type": "section", >> slack_message.json
-                                    echo            "text": { >> slack_message.json
-                                    echo                "type": "mrkdwn", >> slack_message.json
-                                    echo                "text": "*📋 Test Results:*\\n• Tests Run: ${env.TOTAL_TESTS}\\n• ✅ Passes: ${env.SUCCESS_TESTS}\\n• ❌ Failures: ${env.FAILED_TESTS}\\n• ⏭️ Skipped: ${env.SKIPPED_TESTS}" >> slack_message.json
-                                    echo            } >> slack_message.json
-                                    echo        }, >> slack_message.json
-                                    echo        { >> slack_message.json
-                                    echo            "type": "actions", >> slack_message.json
-                                    echo            "elements": [ >> slack_message.json
-                                    echo                { >> slack_message.json
-                                    echo                    "type": "button", >> slack_message.json
-                                    echo                    "text": { >> slack_message.json
-                                    echo                        "type": "plain_text", >> slack_message.json
-                                    echo                        "text": "📥 Download Report" >> slack_message.json
-                                    echo                    }, >> slack_message.json
-                                    echo                    "url": "${env.BUILD_URL}artifact/${env.REPORT_NAME}", >> slack_message.json
-                                    echo                    "action_id": "download_report" >> slack_message.json
-                                    echo                } >> slack_message.json
-                                    echo            ] >> slack_message.json
-                                    echo        } >> slack_message.json
-                                    echo    ] >> slack_message.json
-                                    echo } >> slack_message.json
-                                """
-                                
-                                // Send JSON to Slack
-                                bat """
-                                    curl -X POST ^ 
-                                         -H "Authorization: Bearer %SLACK_TOKEN%" ^ 
-                                         -H "Content-type: application/json" ^ 
-                                         --data-binary "@slack_message.json" ^ 
-                                         "https://slack.com/api/chat.postMessage"
-                                """
-                                
-                                // Clean up
-                                bat "del slack_message.json"
-                                
-                                echo "✅ Slack notification sent with report download link"
-                            }
-                        } catch (Exception e) {
-                            echo "⚠️ Slack notification failed: ${e.message}"
-                            echo "Report is available at: ${env.BUILD_URL}artifact/${env.REPORT_NAME}"
+                    if (fileExists(env.REPORT_NAME)) {
+                        withCredentials([string(credentialsId: env.SLACK_CREDENTIALS_ID, variable: 'SLACK_TOKEN')]) {
+                            def slackMessage = [
+                                channel: env.SLACK_CHANNEL,
+                                text: "📊 Femverse Test Report - Build #${env.BUILD_NUMBER}",
+                                blocks: [
+                                    [
+                                        type: "section",
+                                        text: [
+                                            type: "mrkdwn",
+                                            text: "*📊 Femverse Test Report - Build #${env.BUILD_NUMBER}*\nThe test report has been generated and is available for download."
+                                        ]
+                                    ],
+                                    [
+                                        type: "section",
+                                        text: [
+                                            type: "mrkdwn",
+                                            text: "*📋 Test Results:*\n• Tests Run: ${env.TOTAL_TESTS}\n• ✅ Passes: ${env.SUCCESS_TESTS}\n• ❌ Failures: ${env.FAILED_TESTS}\n• ⏭️ Skipped: ${env.SKIPPED_TESTS}"
+                                        ]
+                                    ],
+                                    [
+                                        type: "actions",
+                                        elements: [
+                                            [
+                                                type: "button",
+                                                text: [
+                                                    type: "plain_text",
+                                                    text: "📥 Download Report"
+                                                ],
+                                                url: "${env.BUILD_URL}artifact/${env.REPORT_NAME}",
+                                                action_id: "download_report"
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+
+                            writeFile file: 'slack_message.json', text: groovy.json.JsonOutput.toJson(slackMessage)
+
+                            bat """curl -X POST ^
+                                -H "Authorization: Bearer %SLACK_TOKEN%" ^
+                                -H "Content-type: application/json" ^
+                                --data-binary "@slack_message.json" ^
+                                "https://slack.com/api/chat.postMessage"
+                            """
+
+                            bat 'del slack_message.json'
+                            echo "✅ Slack notification sent with report download link"
                         }
                     } else {
-                        echo "⚠️ Report not found for upload: ${reportPath}"
+                        echo "⚠️ Report not found for upload"
                     }
                 }
             }
@@ -147,7 +131,7 @@ pipeline {
 
     post {
         always {
-            echo "✅ Pipeline finished successfully!"
+            echo "✅ Pipeline finished!"
             echo "📄 Report available at: ${env.BUILD_URL}artifact/${env.REPORT_NAME}"
         }
     }
