@@ -42,12 +42,31 @@ pipeline {
                         echo "⚠️ No DOCX report found"
                     }
 
-                    // Capture JUnit results
+                    // Default JUnit capture (backup)
                     def testResults = junit 'target/surefire-reports/*.xml'
                     env.TOTAL_TESTS   = testResults.totalCount.toString()
                     env.FAILED_TESTS  = testResults.failCount.toString()
                     env.SKIPPED_TESTS = testResults.skipCount.toString()
                     env.SUCCESS_TESTS = (testResults.totalCount - testResults.failCount - testResults.skipCount).toString()
+
+                    // ✅ Override with ConsoleSummaryListener summary.txt if exists
+                    if (fileExists('summary.txt')) {
+                        def summary = readFile('summary.txt').trim().split("\\r?\\n")
+                        summary.each { line ->
+                            def parts = line.split("=")
+                            if (parts.size() == 2) {
+                                def key = parts[0].trim()
+                                def val = parts[1].trim()
+                                if (key == "TOTAL")   { env.TOTAL_TESTS = val }
+                                if (key == "PASSED")  { env.SUCCESS_TESTS = val }
+                                if (key == "FAILED")  { env.FAILED_TESTS = val }
+                                if (key == "SKIPPED") { env.SKIPPED_TESTS = val }
+                            }
+                        }
+                        echo "✅ Loaded test summary from summary.txt"
+                    } else {
+                        echo "⚠️ summary.txt not found, using default JUnit results"
+                    }
                 }
             }
         }
@@ -79,7 +98,7 @@ pipeline {
                                     echo            "type": "section", >> slack_message.json
                                     echo            "text": { >> slack_message.json
                                     echo                "type": "mrkdwn", >> slack_message.json
-                                    echo                "text": "*📋 Test Results:*\\n• Tests Run: ${env.TOTAL_TESTS}\\n• Success: ${env.SUCCESS_TESTS}\\n• Failures: ${env.FAILED_TESTS}\\n• Skipped: ${env.SKIPPED_TESTS}" >> slack_message.json
+                                    echo                "text": "*📋 Test Results:*\\n• Tests Run: ${env.TOTAL_TESTS}\\n• ✅ Passes: ${env.SUCCESS_TESTS}\\n• ❌ Failures: ${env.FAILED_TESTS}\\n• ⏭️ Skipped: ${env.SKIPPED_TESTS}" >> slack_message.json
                                     echo            } >> slack_message.json
                                     echo        }, >> slack_message.json
                                     echo        { >> slack_message.json
@@ -100,23 +119,22 @@ pipeline {
                                     echo } >> slack_message.json
                                 """
                                 
-                                // Now send the JSON file to Slack
+                                // Send JSON to Slack
                                 bat """
-                                    curl -X POST ^
-                                         -H "Authorization: Bearer %SLACK_TOKEN%" ^
-                                         -H "Content-type: application/json" ^
-                                         --data-binary "@slack_message.json" ^
+                                    curl -X POST ^ 
+                                         -H "Authorization: Bearer %SLACK_TOKEN%" ^ 
+                                         -H "Content-type: application/json" ^ 
+                                         --data-binary "@slack_message.json" ^ 
                                          "https://slack.com/api/chat.postMessage"
                                 """
                                 
-                                // Clean up the JSON file
+                                // Clean up
                                 bat "del slack_message.json"
                                 
                                 echo "✅ Slack notification sent with report download link"
                             }
                         } catch (Exception e) {
                             echo "⚠️ Slack notification failed: ${e.message}"
-                            echo "This is expected if Slack credentials are not configured"
                             echo "Report is available at: ${env.BUILD_URL}artifact/${env.REPORT_NAME}"
                         }
                     } else {

@@ -2,6 +2,8 @@ package com.product.femverse.femverse;
 
 import org.testng.ISuite;
 import org.testng.ISuiteListener;
+import java.io.FileWriter;
+import java.io.IOException;
 
 public class ConsoleSummaryListener implements ISuiteListener {
 
@@ -26,5 +28,15 @@ public class ConsoleSummaryListener implements ISuiteListener {
         System.out.println("• ✅ Passes: " + passed);
         System.out.println("• ❌ Failures: " + failed);
         System.out.println("• ⏭️ Skipped: " + skipped);
+
+        // Write summary.txt in workspace root
+        try (FileWriter writer = new FileWriter("summary.txt")) {
+            writer.write("TOTAL=" + total + "\n");
+            writer.write("PASSED=" + passed + "\n");
+            writer.write("FAILED=" + failed + "\n");
+            writer.write("SKIPPED=" + skipped + "\n");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }
