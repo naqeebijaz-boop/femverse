@@ -29,12 +29,18 @@ public class ConsoleSummaryListener implements ISuiteListener {
         System.out.println("• ❌ Failures: " + failed);
         System.out.println("• ⏭️ Skipped: " + skipped);
 
-        // Write summary.txt in workspace root
-        try (FileWriter writer = new FileWriter("summary.txt")) {
+        // Write summary.txt to Jenkins workspace
+        String workspace = System.getenv("WORKSPACE"); // Jenkins workspace path
+        if (workspace == null) {
+            workspace = "."; // fallback for local runs
+        }
+
+        try (FileWriter writer = new FileWriter(workspace + "/summary.txt")) {
             writer.write("TOTAL=" + total + "\n");
             writer.write("PASSED=" + passed + "\n");
             writer.write("FAILED=" + failed + "\n");
             writer.write("SKIPPED=" + skipped + "\n");
+            System.out.println("✅ summary.txt written to: " + workspace);
         } catch (IOException e) {
             e.printStackTrace();
         }
