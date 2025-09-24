@@ -1,9 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
-
 <suite name="DocufenceAPITestSuite">
-
     <listeners>
         <listener class-name="com.product.femverse.femverse.HtmlToDocxReport"/>
+        <listener class-name="com.product.femverse.femverse.ConsoleSummaryListener"/>
     </listeners>
 
     <test name="WomenPostmanRunnerTest">
@@ -11,5 +9,4 @@
             <class name="com.product.femverse.femverse.WomenPostmanRunner"/>
         </classes>
     </test>
-
 </suite>

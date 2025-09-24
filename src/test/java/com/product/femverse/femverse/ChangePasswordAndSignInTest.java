@@ -17,13 +17,13 @@ import static io.restassured.RestAssured.given;
 
 public class ChangePasswordAndSignInTest {
 
-    private static final String BASE_URL = "https://prod.femverse.ai";
+    private static final String BASE_URL = "https://superwoman.trippleapps.com:8443";
     private static final String LOGIN_URL = BASE_URL + "/api/v1/auth/signin";
     private static final String CHANGE_PASSWORD_URL = BASE_URL + "/api/v1/settings/change-password";
-    private static final String EMAIL = "loodoostaaar@gmail.com";
+    private static final String EMAIL = "naqeeby@example.com";
 
     private static final String PASSWORD_FILE = "current_password.txt";
-    private static final String INITIAL_PASSWORD = "Naqeeb@123461";
+    private static final String INITIAL_PASSWORD = "12345678";
 
     private String oldPassword;
     private String newPassword;
@@ -64,7 +64,7 @@ public class ChangePasswordAndSignInTest {
 
     private String login(String email, String password) {
         Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("device_id", "abcd");
+        requestBody.put("device_id", "zoro");
         requestBody.put("email", email);
         requestBody.put("password", password);
 

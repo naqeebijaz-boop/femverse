@@ -67,8 +67,6 @@ public class HtmlToDocxReport implements ISuiteListener {
         metaRun.setText("📅 Date: " + new SimpleDateFormat("dd MMM yyyy HH:mm").format(new Date()));
         metaRun.addBreak();
         metaRun.addBreak();
-
-       // document.createParagraph().setPageBreak(true);
     }
 
     @Override
@@ -81,10 +79,26 @@ public class HtmlToDocxReport implements ISuiteListener {
                 addBulletPoint("   URL: " + test.get("url"));
 
                 // Add colored status line
-                addBulletPointWithStatus((String) test.get("status"), (int) test.get("statusCode"), (String) test.get("response"));
+                addBulletPointWithStatus(
+                        (String) test.get("status"),
+                        (int) test.get("statusCode"),
+                        (String) test.get("response")
+                );
 
                 document.createParagraph().setPageBreak(false);
             }
+
+            // 📊 Add overall summary
+            int total = WomenPostmanRunner.testResults.size();
+            long passed = WomenPostmanRunner.testResults.stream()
+                    .filter(t -> "PASSED".equalsIgnoreCase((String) t.get("status")))
+                    .count();
+            long failed = total - passed;
+
+            addSectionHeading("📊 Test Summary");
+            addBulletPoint("Total tests run: " + total);
+            addBulletPoint("✅ Passes: " + passed);
+            addBulletPoint("❌ Failures: " + failed);
 
             // Save Word report
             try (FileOutputStream out = new FileOutputStream(reportPath)) {
@@ -111,34 +125,31 @@ public class HtmlToDocxReport implements ISuiteListener {
     private void addBulletPoint(String text) {
         XWPFParagraph para = document.createParagraph();
         para.setAlignment(ParagraphAlignment.LEFT);
-        para.setStyle("ListBullet");
         XWPFRun run = para.createRun();
         run.setFontSize(12);
-        run.setText(text);
+        run.setText("• " + text);
     }
 
     // New method to add colored PASSED/FAILED with response
     private void addBulletPointWithStatus(String status, int statusCode, String response) {
         XWPFParagraph para = document.createParagraph();
         para.setAlignment(ParagraphAlignment.LEFT);
-        para.setStyle("ListBullet");
         XWPFRun run = para.createRun();
         run.setFontSize(12);
 
         if ("PASSED".equalsIgnoreCase(status)) {
             run.setColor("008000"); // Green for PASSED
-            run.setText("✅ PASSED | Status Code: " + statusCode);
+            run.setText("• ✅ PASSED | Status Code: " + statusCode);
         } else {
             run.setColor("FF0000"); // Red for FAILED
-            run.setText("❌ FAILED | Status Code: " + statusCode);
+            run.setText("• ❌ FAILED | Status Code: " + statusCode);
         }
 
         // Response as a separate bullet point
         XWPFParagraph responsePara = document.createParagraph();
         responsePara.setAlignment(ParagraphAlignment.LEFT);
-        responsePara.setStyle("ListBullet");
         XWPFRun responseRun = responsePara.createRun();
         responseRun.setFontSize(12);
-        responseRun.setText("Response: " + response);
+        responseRun.setText("• Response: " + response);
     }
 }

@@ -55,7 +55,11 @@ public class WomenPostmanRunner {
         }
 
         // 5️⃣ Sort results: PASSED first, FAILED later
-        testResults.sort(Comparator.comparing(result -> result.get("status").equals("FAILED")));
+        testResults.sort((a, b) -> {
+            String s1 = String.valueOf(a.getOrDefault("status", ""));
+            String s2 = String.valueOf(b.getOrDefault("status", ""));
+            return s1.compareToIgnoreCase(s2);
+        });
     }
 
     private void fetchAccessToken() {
@@ -203,7 +207,7 @@ public class WomenPostmanRunner {
             case "POST" -> request.post(url);
             case "PUT" -> request.put(url);
             case "PATCH" -> request.patch(url);
-          //  case "DELETE" -> request.delete(url);
+         //   case "DELETE" -> request.delete(url);
             default -> request.get(url);
         };
     }

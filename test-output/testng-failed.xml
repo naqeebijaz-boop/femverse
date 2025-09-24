@@ -6,6 +6,13 @@
   </listeners>
   <test thread-count="5" name="WomenPostmanRunnerTest(failed)">
     <classes>
+      <class name="com.product.femverse.femverse.ChangePasswordAndSignInTest">
+        <methods>
+          <include name="signIn"/>
+          <include name="changePassword"/>
+          <include name="setup"/>
+        </methods>
+      </class> <!-- com.product.femverse.femverse.ChangePasswordAndSignInTest -->
       <class name="com.product.femverse.femverse.WomenPostmanRunner">
         <methods>
           <include name="runWomenCollection"/>

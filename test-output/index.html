@@ -145,6 +145,7 @@
 &lt;suite name=&quot;DocufenceAPITestSuite&quot;&gt;
   &lt;listeners&gt;
     &lt;listener class-name=&quot;com.product.femverse.femverse.HtmlToDocxReport&quot;/&gt;
+    &lt;listener class-name=&quot;com.product.femverse.femverse.ConsoleSummaryListener&quot;/&gt;
   &lt;/listeners&gt;
   &lt;test thread-count=&quot;5&quot; name=&quot;WomenPostmanRunnerTest&quot;&gt;
     &lt;classes&gt;
@@ -192,7 +193,7 @@ data.addRows(1);
 data.setCell(0, 0, 0)
 data.setCell(0, 1, 'runWomenCollection')
 data.setCell(0, 2, 'com.product.femverse.femverse.WomenPostmanRunner')
-data.setCell(0, 3, 176132);
+data.setCell(0, 3, 125750);
 window.suiteTableData['DocufenceAPITestSuite']= { tableData: data, tableDiv: 'times-div-DocufenceAPITestSuite'}
 return data;
 }

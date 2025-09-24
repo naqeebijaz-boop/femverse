@@ -8,7 +8,8 @@
 
     <test name="WomenPostmanRunnerTest">
         <classes>
-            <class name="com.product.femverse.femverse.WomenPostmanRunner"/>
+             <class name="com.product.femverse.femverse.WomenPostmanRunner"/>
+           
         </classes>
     </test>
 
